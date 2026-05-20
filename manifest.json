@@ -2,7 +2,7 @@
   "name": "Number Slide",
   "short_name": "Number Slide",
   "description": "A classic sliding number puzzle game with multiple levels and personal-best times.",
-  "start_url": "./numberslide.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
