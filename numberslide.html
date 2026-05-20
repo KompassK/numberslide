@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Number Slide</title>
+
+<!-- PWA: web app manifest -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1a1a1a" />
+
+<!-- PWA: iOS / Safari home-screen install -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Number Slide" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --board: #000000;
+    --accent: #5b8def;
+    --board-size: min(92vmin, 460px);
+    --raised:
+      inset 2px 2px 3px rgba(255, 255, 255, 0.85),
+      inset -2px -2px 4px rgba(0, 0, 0, 0.18),
+      0 2px 3px rgba(0, 0, 0, 0.55);
+    --raised-hover:
+      inset 2px 2px 4px rgba(255, 255, 255, 0.95),
+      inset -2px -2px 5px rgba(0, 0, 0, 0.22),
+      0 4px 6px rgba(0, 0, 0, 0.65);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding:
+      max(24px, env(safe-area-inset-top))
+      max(24px, env(safe-area-inset-right))
+      max(24px, env(safe-area-inset-bottom))
+      max(24px, env(safe-area-inset-left));
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tile, button { touch-action: manipulation; }
+
+  .hidden { display: none !important; }
+
+  /* ---------- Home screen ---------- */
+  #homeScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    color: #e2e8f0;
+    text-align: center;
+  }
+
+  #homeScreen h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  #homeScreen .subtitle {
+    color: #64748b;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.8rem;
+  }
+
+  #levelChoices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: min(92vmin, 360px);
+  }
+
+  .level-btn {
+    background: #1f2937;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 120ms ease, transform 120ms ease, border-color 120ms ease;
+  }
+
+  .level-btn:hover {
+    background: #273449;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .level-btn .lvl-num {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+
+  .level-btn .lvl-size {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .level-btn .lvl-pb {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #homeClose {
+    margin-top: 8px;
+  }
+
+  /* ---------- Game screen ---------- */
+  #levelLabel {
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin: 0;
+    font-size: 1.05rem;
+    color: #cbd5e1;
+    text-transform: uppercase;
+  }
+
+  #statusBar {
+    width: var(--board-size);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+    padding: 0 4px;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    display: block;
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    line-height: 1;
+  }
+
+  #pbBlock { text-align: right; }
+
+  #board {
+    --n: 3;
+    display: grid;
+    grid-template-columns: repeat(var(--n), 1fr);
+    grid-template-rows: repeat(var(--n), 1fr);
+    gap: 2px;
+    padding: 6px;
+    background: var(--board);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    width: var(--board-size);
+    aspect-ratio: 1 / 1;
+    user-select: none;
+  }
+
+  .tile {
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(var(--board-size) / (var(--n) * 3));
+    font-weight: 700;
+    color: #2b2b2b;
+    cursor: pointer;
+    box-shadow: var(--raised);
+    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  }
+  .tile:hover {
+    box-shadow: var(--raised-hover);
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+  .tile.empty {
+    background: transparent !important;
+    box-shadow: none;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+  button:hover { background: #4a78d8; transform: translateY(-1px); }
+
+  button.secondary { background: #334155; }
+  button.secondary:hover { background: #475569; }
+
+  button.danger { background: #b91c1c; }
+  button.danger:hover { background: #991b1b; }
+
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+  button:disabled:hover {
+    background: var(--accent);
+    transform: none;
+  }
+  button.secondary:disabled:hover { background: #334155; }
+
+  #boardWrap {
+    position: relative;
+    width: var(--board-size);
+    aspect-ratio: 1 / 1;
+  }
+
+  #pauseCurtain {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.92);
+    color: #e2e8f0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    z-index: 2;
+    user-select: none;
+  }
+  #boardWrap.paused #pauseCurtain { display: flex; }
+
+  #gameControls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  /* ---------- Modals (win / confirm) ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    z-index: 10;
+  }
+  .modal.show { display: flex; }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 32px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    max-width: 380px;
+  }
+
+  .card h2 {
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-size: 1.4rem;
+  }
+
+  .card p { margin: 0 0 6px; color: #64748b; }
+
+  .card .pb-flag {
+    color: #16a34a;
+    font-weight: 700;
+    margin: 6px 0 16px;
+  }
+  .card .pb-flag.hidden { display: none; }
+
+  .card .time-line {
+    font-size: 1.1rem;
+    color: #0f172a;
+    margin: 4px 0 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .card .buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ HOME SCREEN ============ -->
+  <div id="homeScreen">
+    <h1>Number Slide</h1>
+    <p class="subtitle">Choose your level</p>
+    <div id="levelChoices"><!-- level buttons injected by JS --></div>
+    <button id="homeClose" class="danger">Close game</button>
+  </div>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <div id="gameScreen" class="hidden">
+    <h1 id="levelLabel">Level 1 — 3×3</h1>
+
+    <div id="statusBar">
+      <div id="timerBlock">
+        <span class="stat-label">Time</span>
+        <span class="stat-value" id="timer">00:00</span>
+      </div>
+      <div id="pbBlock">
+        <span class="stat-label">Personal Best</span>
+        <span class="stat-value" id="pb">—</span>
+      </div>
+    </div>
+
+    <div id="boardWrap">
+      <div id="board" aria-label="slide puzzle board"></div>
+      <div id="pauseCurtain">Paused</div>
+    </div>
+
+    <div id="gameControls">
+      <button id="pauseBtn" class="secondary" disabled>Pause</button>
+      <button id="stopBtn" class="danger">Stop</button>
+    </div>
+  </div>
+
+  <!-- ============ WIN MODAL ============ -->
+  <div id="winModal" class="modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2 id="winTitle">You solved it!</h2>
+      <p class="time-line" id="winTime">Time: 00:00</p>
+      <p class="pb-flag hidden" id="pbFlag">New personal best!</p>
+      <p id="winText">Nicely done.</p>
+      <div class="buttons">
+        <button id="winMenuBtn" class="secondary">Menu</button>
+        <button id="replayBtn" class="secondary">Play Again</button>
+        <button id="nextBtn">Next Level →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ QUIT CONFIRM MODAL ============ -->
+  <div id="confirmModal" class="modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Quit game?</h2>
+      <p>Are you sure you want to quit the game?</p>
+      <p style="color:#94a3b8;font-size:0.85rem;margin-top:4px;">Your timer for this level will be lost.</p>
+      <div class="buttons">
+        <button id="confirmNoBtn" class="secondary">No</button>
+        <button id="confirmYesBtn" class="danger">Yes</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const LEVELS = [
+    { n: 3 }, // Level 1: 1-8
+    { n: 4 }, // Level 2: 1-15
+    { n: 5 }, // Level 3: 1-24
+    { n: 6 }, // Level 4: 1-35
+  ];
+
+  const PB_STORAGE_KEY = 'slidePuzzle.personalBests.v1';
+
+  // Elements
+  const homeScreen = document.getElementById('homeScreen');
+  const gameScreen = document.getElementById('gameScreen');
+  const levelChoices = document.getElementById('levelChoices');
+  const homeClose = document.getElementById('homeClose');
+
+  const board = document.getElementById('board');
+  const boardWrap = document.getElementById('boardWrap');
+  const levelLabel = document.getElementById('levelLabel');
+  const timerEl = document.getElementById('timer');
+  const pbEl = document.getElementById('pb');
+
+  const winModal = document.getElementById('winModal');
+  const winTitle = document.getElementById('winTitle');
+  const winTime = document.getElementById('winTime');
+  const pbFlag = document.getElementById('pbFlag');
+  const winText = document.getElementById('winText');
+  const replayBtn = document.getElementById('replayBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const winMenuBtn = document.getElementById('winMenuBtn');
+
+  const stopBtn = document.getElementById('stopBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+
+  const confirmModal = document.getElementById('confirmModal');
+  const confirmYesBtn = document.getElementById('confirmYesBtn');
+  const confirmNoBtn = document.getElementById('confirmNoBtn');
+
+  // Game state
+  let levelIdx = 0;
+  let n = LEVELS[0].n;
+  let tiles = [];
+
+  // Timer state
+  let timerStartedAt = null;
+  let timerInterval = null;
+  let finishedAt = null;
+  let paused = false;
+  let pausedAt = null;
+
+  // Tracks whether the player was already paused when they hit Stop —
+  // so that hitting "No" on the confirm doesn't un-pause them.
+  let wasPausedBeforeConfirm = false;
+
+  // ---------- Persistent personal bests ----------
+  function loadPBs() {
+    try {
+      const raw = localStorage.getItem(PB_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  }
+  function savePBs(pbs) {
+    try { localStorage.setItem(PB_STORAGE_KEY, JSON.stringify(pbs)); } catch {}
+  }
+  function getPB(levelN) {
+    const v = loadPBs()[String(levelN)];
+    return typeof v === 'number' ? v : null;
+  }
+  function setPB(levelN, ms) {
+    const pbs = loadPBs();
+    pbs[String(levelN)] = ms;
+    savePBs(pbs);
+  }
+
+  // ---------- Time formatting ----------
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const pad = x => String(x).padStart(2, '0');
+    return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  }
+
+  // ---------- Puzzle logic ----------
+  function solvedState() {
+    const arr = [];
+    for (let i = 1; i < n * n; i++) arr.push(i);
+    arr.push(0);
+    return arr;
+  }
+  function emptyIndex() { return tiles.indexOf(0); }
+  function neighbors(idx) {
+    const r = Math.floor(idx / n);
+    const c = idx % n;
+    const out = [];
+    if (r > 0) out.push(idx - n);
+    if (r < n - 1) out.push(idx + n);
+    if (c > 0) out.push(idx - 1);
+    if (c < n - 1) out.push(idx + 1);
+    return out;
+  }
+  function shuffle() {
+    tiles = solvedState();
+    let prev = -1;
+    const moves = n * n * 25;
+    for (let i = 0; i < moves; i++) {
+      const empty = emptyIndex();
+      const opts = neighbors(empty).filter(x => x !== prev);
+      const pick = opts[Math.floor(Math.random() * opts.length)];
+      [tiles[empty], tiles[pick]] = [tiles[pick], tiles[empty]];
+      prev = empty;
+    }
+    if (isSolved()) shuffle();
+  }
+  function isSolved() {
+    for (let i = 0; i < n * n - 1; i++) {
+      if (tiles[i] !== i + 1) return false;
+    }
+    return true;
+  }
+  function tileColor(value, count) {
+    const hue = count <= 1 ? 0 : ((value - 1) / (count - 1)) * 300;
+    return `hsl(${hue}, 80%, 85%)`;
+  }
+  function render() {
+    board.style.setProperty('--n', n);
+    board.innerHTML = '';
+    const tileCount = n * n - 1;
+    tiles.forEach((val, idx) => {
+      const el = document.createElement('div');
+      el.className = 'tile';
+      if (val === 0) {
+        el.classList.add('empty');
+      } else {
+        el.style.background = tileColor(val, tileCount);
+        el.textContent = val;
+        el.addEventListener('click', () => tryMove(idx));
+      }
+      board.appendChild(el);
+    });
+  }
+  function tryMove(idx) {
+    if (finishedAt !== null) return;
+    if (paused) return;
+    if (confirmModal.classList.contains('show')) return;
+    const empty = emptyIndex();
+    if (!neighbors(idx).includes(empty)) return;
+
+    [tiles[idx], tiles[empty]] = [tiles[empty], tiles[idx]];
+    render();
+
+    if (timerStartedAt === null) {
+      startTimer();
+      pauseBtn.disabled = false;
+    }
+    if (isSolved()) handleWin();
+  }
+
+  // ---------- Timer ----------
+  function updateTimerDisplay() {
+    if (timerStartedAt === null) { timerEl.textContent = '00:00'; return; }
+    const end = finishedAt ?? Date.now();
+    timerEl.textContent = formatTime(end - timerStartedAt);
+  }
+  function startTimer() {
+    timerStartedAt = Date.now();
+    updateTimerDisplay();
+    timerInterval = setInterval(updateTimerDisplay, 250);
+  }
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+  function resetTimer() {
+    stopTimer();
+    timerStartedAt = null;
+    finishedAt = null;
+    paused = false;
+    pausedAt = null;
+    boardWrap.classList.remove('paused');
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.disabled = true;
+    updateTimerDisplay();
+  }
+  function pauseTimer() {
+    if (paused || timerStartedAt === null || finishedAt !== null) return;
+    paused = true;
+    pausedAt = Date.now();
+    stopTimer();
+    boardWrap.classList.add('paused');
+    pauseBtn.textContent = 'Resume';
+  }
+  function resumeTimer() {
+    if (!paused) return;
+    timerStartedAt += (Date.now() - pausedAt);
+    paused = false;
+    pausedAt = null;
+    boardWrap.classList.remove('paused');
+    pauseBtn.textContent = 'Pause';
+    timerInterval = setInterval(updateTimerDisplay, 250);
+    updateTimerDisplay();
+  }
+
+  // ---------- Screen / level management ----------
+  function updatePBDisplay() {
+    const pb = getPB(n);
+    pbEl.textContent = pb === null ? '—' : formatTime(pb);
+  }
+  function updateLevelLabel() {
+    levelLabel.textContent = `Level ${levelIdx + 1} — ${n}×${n}`;
+  }
+
+  function showHome() {
+    // Clean up game state
+    resetTimer();
+    winModal.classList.remove('show');
+    confirmModal.classList.remove('show');
+    gameScreen.classList.add('hidden');
+    homeScreen.classList.remove('hidden');
+    renderLevelChoices();
+  }
+
+  function startLevel(idx) {
+    levelIdx = idx;
+    n = LEVELS[idx].n;
+    homeScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    winModal.classList.remove('show');
+    confirmModal.classList.remove('show');
+    updateLevelLabel();
+    updatePBDisplay();
+    resetTimer();
+    shuffle();
+    render();
+  }
+
+  function renderLevelChoices() {
+    levelChoices.innerHTML = '';
+    LEVELS.forEach((lvl, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'level-btn';
+      const pb = getPB(lvl.n);
+      btn.innerHTML = `
+        <span class="lvl-num">Level ${i + 1}</span>
+        <span class="lvl-size">${lvl.n}×${lvl.n}</span>
+        <span class="lvl-pb">Best: ${pb === null ? '—' : formatTime(pb)}</span>
+      `;
+      btn.addEventListener('click', () => startLevel(i));
+      levelChoices.appendChild(btn);
+    });
+  }
+
+  function handleWin() {
+    finishedAt = Date.now();
+    stopTimer();
+    updateTimerDisplay();
+
+    const elapsed = finishedAt - timerStartedAt;
+    const previousPB = getPB(n);
+    const isNewPB = previousPB === null || elapsed < previousPB;
+    if (isNewPB) {
+      setPB(n, elapsed);
+      updatePBDisplay();
+    }
+    setTimeout(() => showWin(elapsed, isNewPB), 250);
+  }
+
+  function showWin(elapsedMs, isNewPB) {
+    const isFinal = levelIdx === LEVELS.length - 1;
+    winTime.textContent = `Time: ${formatTime(elapsedMs)}`;
+
+    if (isNewPB) {
+      pbFlag.classList.remove('hidden');
+      pbFlag.textContent = 'New personal best!';
+    } else {
+      pbFlag.classList.add('hidden');
+    }
+
+    if (isFinal) {
+      winTitle.textContent = 'You finished!';
+      winText.textContent = `You beat all ${LEVELS.length} levels. Replay the ${n}×${n}, or start over from level 1.`;
+      nextBtn.textContent = 'Back to Level 1';
+      replayBtn.textContent = `Replay ${n}×${n}`;
+    } else {
+      winTitle.textContent = 'Level complete!';
+      const next = LEVELS[levelIdx + 1].n;
+      winText.textContent = `Play this level again, or move up to ${next}×${next}.`;
+      nextBtn.textContent = 'Next Level →';
+      replayBtn.textContent = 'Play Again';
+    }
+    winModal.classList.add('show');
+  }
+
+  // ---------- Close-the-tab fallback (used by Home's "Close game") ----------
+  function closeGame() {
+    window.close();
+    setTimeout(() => {
+      document.documentElement.innerHTML = `
+        <head><meta charset="utf-8"><title>Game ended</title>
+        <style>
+          html,body{height:100%;margin:0;background:#1a1a1a;color:#cbd5e1;
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+            display:flex;align-items:center;justify-content:center;text-align:center;}
+          .msg{padding:24px}
+          h1{font-weight:600;letter-spacing:0.04em;color:#e2e8f0;margin:0 0 8px;font-size:1.4rem}
+          p{color:#64748b;margin:0}
+        </style></head>
+        <body><div class="msg">
+          <h1>Game ended</h1>
+          <p>You can close this tab or reload to play again.</p>
+        </div></body>`;
+    }, 50);
+  }
+
+  // ---------- Button handlers ----------
+  replayBtn.addEventListener('click', () => startLevel(levelIdx));
+  nextBtn.addEventListener('click', () => {
+    const isFinal = levelIdx === LEVELS.length - 1;
+    startLevel(isFinal ? 0 : levelIdx + 1);
+  });
+  winMenuBtn.addEventListener('click', showHome);
+
+  pauseBtn.addEventListener('click', () => {
+    if (paused) resumeTimer(); else pauseTimer();
+  });
+
+  stopBtn.addEventListener('click', () => {
+    // Skip the confirmation if the puzzle is already done — just go home.
+    if (finishedAt !== null) { showHome(); return; }
+    // Remember pause state so "No" doesn't accidentally resume them.
+    wasPausedBeforeConfirm = paused;
+    // Pause while confirming so the clock doesn't keep running.
+    if (!paused) pauseTimer();
+    confirmModal.classList.add('show');
+  });
+
+  confirmYesBtn.addEventListener('click', () => {
+    confirmModal.classList.remove('show');
+    showHome();
+  });
+
+  confirmNoBtn.addEventListener('click', () => {
+    confirmModal.classList.remove('show');
+    // Only auto-resume if the player wasn't manually paused before they hit Stop.
+    if (!wasPausedBeforeConfirm) resumeTimer();
+  });
+
+  homeClose.addEventListener('click', closeGame);
+
+  // ---------- Boot ----------
+  showHome();
+</script>
+</body>
+</html>
