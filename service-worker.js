@@ -8,7 +8,7 @@ const CACHE_NAME = 'number-slide-v1';
 // from a domain root and from a subdirectory.
 const ASSETS = [
   './',
-  './numberslide.html',
+  './index.html',
   './manifest.json',
   './icon-180.png',
   './icon-192.png',
@@ -55,7 +55,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match('./numberslide.html'));
+        .catch(() => caches.match('./index.html'));
     })
   );
 });
