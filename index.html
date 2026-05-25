@@ -132,43 +132,78 @@
     margin-top: 8px;
   }
 
-  /* ---------- End screen ---------- */
-  #endScreen {
+  /* ---------- Resting (exit) screen ---------- */
+  #restingScreen {
+    /* Fill the viewport so the swipe-up hint can sit at the true bottom. */
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    color: #e2e8f0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
-    color: #e2e8f0;
+    justify-content: center;
     text-align: center;
+    padding:
+      max(24px, env(safe-area-inset-top))
+      24px
+      max(24px, env(safe-area-inset-bottom))
+      24px;
+    z-index: 20;
   }
 
-  #endScreen h1 {
+  #restingScreen .resting-title {
+    margin: 0 0 14px;
+    font-size: 1.8rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #e2e8f0;
+  }
+
+  #restingScreen .resting-msg {
     margin: 0;
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 0.95rem;
+    color: #94a3b8;
+    font-weight: 300;
     letter-spacing: 0.02em;
   }
 
-  #endScreen .subtitle {
-    color: #64748b;
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 0.8rem;
-  }
-
-  #endScreen .end-msg {
-    color: #94a3b8;
-    margin: 0 0 6px;
-    max-width: 280px;
-    line-height: 1.4;
-  }
-
-  #endScreen .end-buttons {
+  /* Soft swipe-up cue at the bottom of the resting screen. */
+  #swipeHint {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom) + 24px);
     display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #64748b;
+    pointer-events: none;
+  }
+
+  #swipeHint .swipe-arrow {
+    width: 26px;
+    height: 26px;
+    color: #94a3b8;
+    opacity: 0;
+    animation: swipe-rise 2.8s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  #swipeHint .swipe-text {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: #64748b;
+  }
+
+  @keyframes swipe-rise {
+    0%   { transform: translateY(10px); opacity: 0; }
+    20%  { opacity: 0.55; }
+    70%  { opacity: 0.55; }
+    100% { transform: translateY(-16px); opacity: 0; }
   }
 
   /* ---------- Game screen ---------- */
@@ -319,34 +354,133 @@
   }
   #boardWrap.paused #pauseCurtain { display: flex; }
 
-  /* "You did it!" curtain — sits softly over the completed grid */
+  /* "You did it!" curtain — sits softly over the completed grid.
+     Uses a gentle light veil + slight blur to brighten the pastels so the
+     dark text below reads cleanly against any tile colour. */
   #winCurtain {
     position: absolute;
     inset: 0;
     border-radius: 10px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.18);
-    -webkit-backdrop-filter: blur(1px);
-    backdrop-filter: blur(1px);
-    color: #f8fafc;
-    font-size: clamp(2rem, 7vmin, 3.2rem);
-    font-weight: 300;
-    letter-spacing: 0.04em;
-    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55), 0 0 2px rgba(0, 0, 0, 0.4);
+    gap: 18px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.22);
+    -webkit-backdrop-filter: blur(0.5px);
+    backdrop-filter: blur(0.5px);
+    color: #0f172a;
+    /* very soft white halo — softens any tile edge bleeding through */
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 900ms ease, visibility 0s linear 900ms;
     z-index: 3;
     user-select: none;
+    text-align: center;
   }
   #winCurtain.show {
     opacity: 1;
     visibility: visible;
     transition: opacity 900ms ease, visibility 0s linear 0s;
   }
+
+  #winCurtain .win-headline {
+    font-size: clamp(2.8rem, 10vmin, 4.4rem);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    color: #0b1220; /* near-black slate — strong, easy to read */
+  }
+  #winCurtain .win-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    font-size: clamp(1.05rem, 3.2vmin, 1.35rem);
+    letter-spacing: 0.06em;
+    color: #1e293b; /* slate-800 */
+  }
+  #winCurtain .win-newpb {
+    margin-top: 6px;
+    font-size: clamp(1.1rem, 3.4vmin, 1.4rem);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #166534; /* deeper, calm green — clearly legible without flashing */
+  }
+  #winCurtain .win-newpb.hidden { display: none; }
+
+  /* Floating Play Again / I'm Done — drift gently over the finished grid. */
+  #floatingButtons {
+    position: fixed;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none; /* taps pass through except on the buttons */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 800ms ease, visibility 0s linear 800ms;
+  }
+  #floatingButtons.show {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 800ms ease, visibility 0s linear 0s;
+  }
+
+  .float-btn {
+    position: absolute;
+    pointer-events: auto;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 16px 30px;
+    min-width: 140px;
+    min-height: 52px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    will-change: transform;
+  }
+
+  #floatBtnPlayAgain {
+    top: 38%;
+    left: 14%;
+    background: rgba(91, 141, 239, 0.8);     /* accent blue at ~80% */
+    animation: drift-a 22s ease-in-out infinite;
+  }
+  #floatBtnDone {
+    top: 58%;
+    right: 14%;
+    background: rgba(51, 65, 85, 0.8);       /* slate at ~80% */
+    animation: drift-b 26s ease-in-out infinite -3s;
+  }
+
+  /* Subtle, slow looping drifts. Small deltas so buttons stay reachable. */
+  @keyframes drift-a {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(26px, -20px); }
+    50%  { transform: translate(-10px, -30px); }
+    75%  { transform: translate(-28px, 14px); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes drift-b {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(-22px, 18px); }
+    50%  { transform: translate(14px, 26px); }
+    75%  { transform: translate(24px, -16px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* When the puzzle is solved, hide the standard pause/stop controls so
+     the floating buttons are the only post-completion interaction. */
+  #gameScreen.solved #gameControls { display: none; }
 
   #gameControls {
     display: flex;
@@ -446,7 +580,14 @@
     <div id="boardWrap">
       <div id="board" aria-label="slide puzzle board"></div>
       <div id="pauseCurtain">Paused</div>
-      <div id="winCurtain">You did it!</div>
+      <div id="winCurtain">
+        <div class="win-headline">You did it!</div>
+        <div class="win-stats">
+          <div id="winTimeLine">Time —</div>
+          <div id="winBestLine">Best —</div>
+        </div>
+        <div id="winNewPb" class="win-newpb hidden">New personal best!</div>
+      </div>
     </div>
 
     <div id="gameControls">
@@ -455,19 +596,10 @@
     </div>
   </div>
 
-  <!-- ============ WIN MODAL ============ -->
-  <div id="winModal" class="modal" role="dialog" aria-modal="true">
-    <div class="card">
-      <h2 id="winTitle">You solved it!</h2>
-      <p class="time-line" id="winTime">Time: 00:00</p>
-      <p class="pb-flag hidden" id="pbFlag">New personal best!</p>
-      <p id="winText">Nicely done.</p>
-      <div class="buttons">
-        <button id="winMenuBtn" class="secondary">Menu</button>
-        <button id="replayBtn" class="secondary">Play Again</button>
-        <button id="nextBtn">Next Level →</button>
-      </div>
-    </div>
+  <!-- ============ POST-COMPLETION FLOATING BUTTONS ============ -->
+  <div id="floatingButtons" aria-hidden="true">
+    <button id="floatBtnPlayAgain" class="float-btn">Play Again</button>
+    <button id="floatBtnDone" class="float-btn">I'm Done</button>
   </div>
 
   <!-- ============ QUIT CONFIRM MODAL ============ -->
@@ -483,14 +615,19 @@
     </div>
   </div>
 
-  <!-- ============ END SCREEN ============ -->
-  <div id="endScreen" class="hidden">
-    <h1>Number Slide</h1>
-    <p class="subtitle">Game ended</p>
-    <p class="end-msg">Thanks for playing. Start a new game, or close the app.</p>
-    <div class="end-buttons">
-      <button id="endPlayAgainBtn">Play Again</button>
-      <button id="endCloseBtn" class="secondary">Close</button>
+  <!-- ============ RESTING (EXIT) SCREEN ============ -->
+  <div id="restingScreen" class="hidden">
+    <h1 class="resting-title">Pastel Push</h1>
+    <p class="resting-msg">See you next time.</p>
+
+    <div id="swipeHint">
+      <!-- Calm upward chevron — pulses up and fades, suggesting swipe-up to exit. -->
+      <svg class="swipe-arrow" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 14l6-6 6 6" />
+      </svg>
+      <span class="swipe-text">swipe up to leave</span>
     </div>
   </div>
 
@@ -517,14 +654,15 @@
   const timerEl = document.getElementById('timer');
   const pbEl = document.getElementById('pb');
 
-  const winModal = document.getElementById('winModal');
-  const winTitle = document.getElementById('winTitle');
-  const winTime = document.getElementById('winTime');
-  const pbFlag = document.getElementById('pbFlag');
-  const winText = document.getElementById('winText');
-  const replayBtn = document.getElementById('replayBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const winMenuBtn = document.getElementById('winMenuBtn');
+  // Completion moment ("You did it!" curtain) stat lines
+  const winTimeLine = document.getElementById('winTimeLine');
+  const winBestLine = document.getElementById('winBestLine');
+  const winNewPb = document.getElementById('winNewPb');
+
+  // Post-completion floating buttons
+  const floatingButtons = document.getElementById('floatingButtons');
+  const floatBtnPlayAgain = document.getElementById('floatBtnPlayAgain');
+  const floatBtnDone = document.getElementById('floatBtnDone');
 
   const stopBtn = document.getElementById('stopBtn');
   const pauseBtn = document.getElementById('pauseBtn');
@@ -533,9 +671,8 @@
   const confirmYesBtn = document.getElementById('confirmYesBtn');
   const confirmNoBtn = document.getElementById('confirmNoBtn');
 
-  const endScreen = document.getElementById('endScreen');
-  const endPlayAgainBtn = document.getElementById('endPlayAgainBtn');
-  const endCloseBtn = document.getElementById('endCloseBtn');
+  // Resting / exit screen
+  const restingScreen = document.getElementById('restingScreen');
 
   // Game state
   let levelIdx = 0;
@@ -688,6 +825,10 @@
     // Cancel any pending hand-off from the "You did it!" curtain.
     if (winCurtainTimeout) { clearTimeout(winCurtainTimeout); winCurtainTimeout = null; }
     winCurtain.classList.remove('show');
+    // Drop the post-completion state — pause/stop become visible again,
+    // floating buttons hide.
+    gameScreen.classList.remove('solved');
+    floatingButtons.classList.remove('show');
     updateTimerDisplay();
   }
   function pauseTimer() {
@@ -721,30 +862,31 @@
   function showHome() {
     // Clean up game state
     resetTimer();
-    winModal.classList.remove('show');
     confirmModal.classList.remove('show');
     gameScreen.classList.add('hidden');
-    endScreen.classList.add('hidden');
+    restingScreen.classList.add('hidden');
     homeScreen.classList.remove('hidden');
     renderLevelChoices();
   }
 
-  function showEndScreen() {
+  // Resting / exit screen. Personal-best scores are written to localStorage
+  // synchronously at the moment they are achieved (see handleWin → setPB),
+  // so they are already persisted by the time this screen is shown.
+  // Nothing here clears them, so they survive the next app launch.
+  function showRestingScreen() {
     resetTimer();
-    winModal.classList.remove('show');
     confirmModal.classList.remove('show');
     gameScreen.classList.add('hidden');
     homeScreen.classList.add('hidden');
-    endScreen.classList.remove('hidden');
+    restingScreen.classList.remove('hidden');
   }
 
   function startLevel(idx) {
     levelIdx = idx;
     n = LEVELS[idx].n;
     homeScreen.classList.add('hidden');
-    endScreen.classList.add('hidden');
+    restingScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
-    winModal.classList.remove('show');
     confirmModal.classList.remove('show');
     updateLevelLabel();
     updatePBDisplay();
@@ -777,73 +919,50 @@
     const elapsed = finishedAt - timerStartedAt;
     const previousPB = getPB(n);
     const isNewPB = previousPB === null || elapsed < previousPB;
+
+    // Persist the new personal best to localStorage immediately, so it
+    // survives a close, refresh, or PWA restart.
     if (isNewPB) {
       setPB(n, elapsed);
       updatePBDisplay();
     }
 
-    // Calm completion moment: fade "You did it!" in over the finished
-    // grid, hold for 5 seconds total, then crossfade to the results modal.
-    // Both the curtain and the modal use CSS opacity transitions, so the
-    // hand-off is smooth — no jarring snaps.
+    // What "Best" should the curtain show?
+    //   • If we just beat the PB → show the new best (the time they just set)
+    //   • Otherwise → show the existing PB (or em-dash if none)
+    const bestToShow = isNewPB ? elapsed : previousPB;
+    winTimeLine.textContent = `Time   ${formatTime(elapsed)}`;
+    winBestLine.textContent =
+      bestToShow === null ? 'Best   —' : `Best   ${formatTime(bestToShow)}`;
+    if (isNewPB) {
+      winNewPb.classList.remove('hidden');
+    } else {
+      winNewPb.classList.add('hidden');
+    }
+
+    // Calm completion moment: the curtain fades in over the finished grid
+    // and holds for 10 seconds, showing time / best / (optional) new-PB
+    // message. After the hold, fade the curtain out and bring in the
+    // drifting floating buttons — no modal, grid stays visible throughout.
+    gameScreen.classList.add('solved');     // hides pause/stop
     winCurtain.classList.add('show');
     winCurtainTimeout = setTimeout(() => {
       winCurtain.classList.remove('show');
-      showWin(elapsed, isNewPB);
+      floatingButtons.classList.add('show');
       winCurtainTimeout = null;
-    }, 5000);
-  }
-
-  function showWin(elapsedMs, isNewPB) {
-    const isFinal = levelIdx === LEVELS.length - 1;
-    winTime.textContent = `Time: ${formatTime(elapsedMs)}`;
-
-    if (isNewPB) {
-      pbFlag.classList.remove('hidden');
-      pbFlag.textContent = 'New personal best!';
-    } else {
-      pbFlag.classList.add('hidden');
-    }
-
-    if (isFinal) {
-      winTitle.textContent = 'You finished!';
-      winText.textContent = `You beat all ${LEVELS.length} levels. Replay the ${n}×${n}, or start over from level 1.`;
-      nextBtn.textContent = 'Back to Level 1';
-      replayBtn.textContent = `Replay ${n}×${n}`;
-    } else {
-      winTitle.textContent = 'Level complete!';
-      const next = LEVELS[levelIdx + 1].n;
-      winText.textContent = `Play this level again, or move up to ${next}×${next}.`;
-      nextBtn.textContent = 'Next Level →';
-      replayBtn.textContent = 'Play Again';
-    }
-    winModal.classList.add('show');
-  }
-
-  // ---------- End screen (used by Home's "Close game") ----------
-  // Shows a styled goodbye screen with Play Again / Close. We do NOT try
-  // window.close() here — that's reserved for the Close button on the end
-  // screen itself, so the user gets a clear confirmation before the app
-  // attempts to exit.
-  function closeGame() {
-    showEndScreen();
+    }, 10000);
   }
 
   // ---------- Button handlers ----------
-  replayBtn.addEventListener('click', () => startLevel(levelIdx));
-  nextBtn.addEventListener('click', () => {
-    const isFinal = levelIdx === LEVELS.length - 1;
-    startLevel(isFinal ? 0 : levelIdx + 1);
-  });
-  winMenuBtn.addEventListener('click', showHome);
-
   pauseBtn.addEventListener('click', () => {
     if (paused) resumeTimer(); else pauseTimer();
   });
 
   stopBtn.addEventListener('click', () => {
-    // Skip the confirmation if the puzzle is already done — just go home.
-    if (finishedAt !== null) { showHome(); return; }
+    // If the puzzle is already done, the floating buttons drive the exit
+    // flow — Stop is no longer relevant. Guard anyway in case the button
+    // becomes visible during a state edge case.
+    if (finishedAt !== null) return;
     // Remember pause state so "No" doesn't accidentally resume them.
     wasPausedBeforeConfirm = paused;
     // Pause while confirming so the clock doesn't keep running.
@@ -851,9 +970,11 @@
     confirmModal.classList.add('show');
   });
 
+  // Confirming "Yes" on the quit dialog is the player choosing to close
+  // the game → resting screen (PBs already saved, nothing reset).
   confirmYesBtn.addEventListener('click', () => {
     confirmModal.classList.remove('show');
-    showHome();
+    showRestingScreen();
   });
 
   confirmNoBtn.addEventListener('click', () => {
@@ -862,22 +983,13 @@
     if (!wasPausedBeforeConfirm) resumeTimer();
   });
 
-  homeClose.addEventListener('click', closeGame);
+  // The home screen's "Close game" goes straight to the resting screen.
+  homeClose.addEventListener('click', showRestingScreen);
 
-  // End screen: Play Again reloads the whole page, giving a fresh app state.
-  endPlayAgainBtn.addEventListener('click', () => {
-    location.reload();
-  });
-
-  // End screen: Close attempts window.close(); if the browser/PWA blocks it
-  // (which iOS standalone mode always does), fall back to the home screen.
-  endCloseBtn.addEventListener('click', () => {
-    window.close();
-    setTimeout(() => {
-      // If we're still alive, close was blocked — return to start screen.
-      showHome();
-    }, 150);
-  });
+  // Floating buttons: Play Again restarts the same level fresh; I'm Done
+  // sends the player to the calm resting/exit screen.
+  floatBtnPlayAgain.addEventListener('click', () => startLevel(levelIdx));
+  floatBtnDone.addEventListener('click', showRestingScreen);
 
   // ---------- Boot ----------
   showHome();
