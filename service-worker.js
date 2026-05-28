@@ -1,4 +1,4 @@
-// Number Slide — service worker
+// Pastel Push — service worker
 // Cache-first strategy so the game works fully offline once installed.
 
 const CACHE_NAME = 'number-slide-v1';

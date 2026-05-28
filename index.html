@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Number Slide</title>
+<title>Pastel Push</title>
 
 <!-- PWA: web app manifest -->
 <link rel="manifest" href="manifest.json" />
@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Number Slide" />
+<meta name="apple-mobile-web-app-title" content="Pastel Push" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
@@ -286,7 +286,11 @@
     color: #2b2b2b;
     cursor: pointer;
     box-shadow: var(--raised);
-    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease,
+      filter 120ms ease,
+      background-color 110ms linear; /* fluid ripple between columns + smooth snap-back */
   }
   .tile:hover {
     box-shadow: var(--raised-hover);
@@ -354,66 +358,8 @@
   }
   #boardWrap.paused #pauseCurtain { display: flex; }
 
-  /* "You did it!" curtain — sits softly over the completed grid.
-     Uses a gentle light veil + slight blur to brighten the pastels so the
-     dark text below reads cleanly against any tile colour. */
-  #winCurtain {
-    position: absolute;
-    inset: 0;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.22);
-    -webkit-backdrop-filter: blur(0.5px);
-    backdrop-filter: blur(0.5px);
-    color: #0f172a;
-    /* very soft white halo — softens any tile edge bleeding through */
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 900ms ease, visibility 0s linear 900ms;
-    z-index: 3;
-    user-select: none;
-    text-align: center;
-  }
-  #winCurtain.show {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 900ms ease, visibility 0s linear 0s;
-  }
-
-  #winCurtain .win-headline {
-    font-size: clamp(2.8rem, 10vmin, 4.4rem);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    line-height: 1.1;
-    color: #0b1220; /* near-black slate — strong, easy to read */
-  }
-  #winCurtain .win-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-    font-size: clamp(1.05rem, 3.2vmin, 1.35rem);
-    letter-spacing: 0.06em;
-    color: #1e293b; /* slate-800 */
-  }
-  #winCurtain .win-newpb {
-    margin-top: 6px;
-    font-size: clamp(1.1rem, 3.4vmin, 1.4rem);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    color: #166534; /* deeper, calm green — clearly legible without flashing */
-  }
-  #winCurtain .win-newpb.hidden { display: none; }
-
-  /* Floating Play Again / I'm Done — drift gently over the finished grid. */
+  /* Floating "You did it!" / Play Again / I'm Done — drift gently over the
+     rippling grid. Phase rules below swap which buttons are visible. */
   #floatingButtons {
     position: fixed;
     inset: 0;
@@ -449,6 +395,58 @@
     will-change: transform;
   }
 
+  #floatBtnYouDidIt {
+    /* Decorative celebratory text — no panel, larger and lighter than the
+       action buttons. A cream→white→cream gradient fills the text shape
+       via background-clip:text, and animating background-position creates
+       a gentle glint that drifts across the letters. */
+    top: 40%;
+    left: 50%;
+    cursor: default;
+    pointer-events: none;                    /* purely decorative */
+
+    /* Strip the panel styling inherited from .float-btn */
+    background: linear-gradient(
+      105deg,
+      #fdf8e7 25%,
+      #ffffff 50%,
+      #fdf8e7 75%
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    padding: 4px 12px;
+    min-width: 0;
+    min-height: 0;
+
+    /* Larger, lighter type that reads as celebratory */
+    font-size: clamp(2rem, 7.5vmin, 3.4rem);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+
+    /* Soft drop-shadow on the rendered glyph shapes — keeps the cream
+       readable against any tile colour the ripple lands on. */
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+
+    /* Two independent animations: drift-c moves the button around the
+       screen via `transform`; sparkle slides the gradient inside the
+       text. They share no properties so they compose cleanly. */
+    animation:
+      drift-c 24s ease-in-out infinite,
+      sparkle 4.5s ease-in-out infinite alternate;
+  }
+  @keyframes sparkle {
+    from { background-position:   0% 0%; }
+    to   { background-position: 100% 0%; }
+  }
   #floatBtnPlayAgain {
     top: 38%;
     left: 14%;
@@ -462,7 +460,9 @@
     animation: drift-b 26s ease-in-out infinite -3s;
   }
 
-  /* Subtle, slow looping drifts. Small deltas so buttons stay reachable. */
+  /* Subtle, slow looping drifts. Small deltas so buttons stay reachable.
+     drift-c carries a translate(-50%, …) prefix so #floatBtnYouDidIt stays
+     centred horizontally while drifting. */
   @keyframes drift-a {
     0%   { transform: translate(0, 0); }
     25%  { transform: translate(26px, -20px); }
@@ -476,6 +476,31 @@
     50%  { transform: translate(14px, 26px); }
     75%  { transform: translate(24px, -16px); }
     100% { transform: translate(0, 0); }
+  }
+  @keyframes drift-c {
+    0%   { transform: translate(-50%, 0); }
+    25%  { transform: translate(calc(-50% + 24px), -22px); }
+    50%  { transform: translate(calc(-50% - 18px), -32px); }
+    75%  { transform: translate(calc(-50% - 26px), 14px); }
+    100% { transform: translate(-50%, 0); }
+  }
+
+  /* Phase visibility — "You did it!" is always visible whenever the
+     container is shown (the container's own fade-in handles its entrance).
+     The action buttons fade in alongside it once the actions phase begins,
+     so after the swap all three buttons drift together over the grid. */
+  .float-btn {
+    transition: opacity 700ms ease;
+  }
+  #floatBtnPlayAgain,
+  #floatBtnDone {
+    opacity: 0;
+    pointer-events: none;                    /* tappable only in actions phase */
+  }
+  #floatingButtons.phase-actions #floatBtnPlayAgain,
+  #floatingButtons.phase-actions #floatBtnDone {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   /* When the puzzle is solved, hide the standard pause/stop controls so
@@ -555,7 +580,7 @@
 
   <!-- ============ HOME SCREEN ============ -->
   <div id="homeScreen">
-    <h1>Number Slide</h1>
+    <h1>Pastel Push</h1>
     <p class="subtitle">Choose your level</p>
     <div id="levelChoices"><!-- level buttons injected by JS --></div>
     <button id="homeClose" class="danger">Close game</button>
@@ -580,14 +605,6 @@
     <div id="boardWrap">
       <div id="board" aria-label="slide puzzle board"></div>
       <div id="pauseCurtain">Paused</div>
-      <div id="winCurtain">
-        <div class="win-headline">You did it!</div>
-        <div class="win-stats">
-          <div id="winTimeLine">Time —</div>
-          <div id="winBestLine">Best —</div>
-        </div>
-        <div id="winNewPb" class="win-newpb hidden">New personal best!</div>
-      </div>
     </div>
 
     <div id="gameControls">
@@ -597,20 +614,23 @@
   </div>
 
   <!-- ============ POST-COMPLETION FLOATING BUTTONS ============ -->
+  <!-- "You did it!" is purely decorative — it lives inside the same
+       container so it can drift alongside the action buttons, but its
+       CSS sets pointer-events: none and a default cursor. -->
   <div id="floatingButtons" aria-hidden="true">
+    <button id="floatBtnYouDidIt" class="float-btn" tabindex="-1" aria-hidden="true">You did it!</button>
     <button id="floatBtnPlayAgain" class="float-btn">Play Again</button>
     <button id="floatBtnDone" class="float-btn">I'm Done</button>
   </div>
 
-  <!-- ============ QUIT CONFIRM MODAL ============ -->
+  <!-- ============ STOP CONFIRM MODAL ============ -->
   <div id="confirmModal" class="modal" role="dialog" aria-modal="true">
     <div class="card">
-      <h2>Quit game?</h2>
-      <p>Are you sure you want to quit the game?</p>
+      <h2>Stop this game?</h2>
       <p style="color:#94a3b8;font-size:0.85rem;margin-top:4px;">Your timer for this level will be lost.</p>
       <div class="buttons">
-        <button id="confirmNoBtn" class="secondary">No</button>
-        <button id="confirmYesBtn" class="danger">Yes</button>
+        <button id="confirmNoBtn" class="secondary">Cancel</button>
+        <button id="confirmYesBtn">Yes</button>
       </div>
     </div>
   </div>
@@ -649,17 +669,12 @@
 
   const board = document.getElementById('board');
   const boardWrap = document.getElementById('boardWrap');
-  const winCurtain = document.getElementById('winCurtain');
   const levelLabel = document.getElementById('levelLabel');
   const timerEl = document.getElementById('timer');
   const pbEl = document.getElementById('pb');
 
-  // Completion moment ("You did it!" curtain) stat lines
-  const winTimeLine = document.getElementById('winTimeLine');
-  const winBestLine = document.getElementById('winBestLine');
-  const winNewPb = document.getElementById('winNewPb');
-
-  // Post-completion floating buttons
+  // Floating buttons (all three live in the same container; phase classes
+  // crossfade between the celebratory "You did it!" and the action pair).
   const floatingButtons = document.getElementById('floatingButtons');
   const floatBtnPlayAgain = document.getElementById('floatBtnPlayAgain');
   const floatBtnDone = document.getElementById('floatBtnDone');
@@ -686,9 +701,19 @@
   let paused = false;
   let pausedAt = null;
 
-  // Holds the timeout that hands off from the "You did it!" curtain to the
-  // results modal, so we can cancel it if the player navigates away first.
-  let winCurtainTimeout = null;
+  // Timeout that swaps the celebrate phase ("You did it!" floating button)
+  // for the actions phase (Play Again / I'm Done). Cancelled if the player
+  // leaves the game screen before the swap fires.
+  let celebratePhaseTimeout = null;
+
+  // Rainbow-ripple state for the 10-second completion moment.
+  // The wave shifts each tile's colour to the colour the tile to its left
+  // had at the start of the current pass, cycling continuously. The empty
+  // tile (always at bottom-right after solve) is skipped — the bottom row
+  // cycles among its N-1 numbered tiles instead of N.
+  let rippleRAF = null;            // requestAnimationFrame handle
+  let rippleTileElements = null;   // snapshot of board children at ripple start
+  let rippleOriginalBgs = null;    // original colours per tile (for snap-back)
 
   // Tracks whether the player was already paused when they hit Stop —
   // so that hitting "No" on the confirm doesn't un-pause them.
@@ -822,13 +847,18 @@
     boardWrap.classList.remove('paused');
     pauseBtn.textContent = 'Pause';
     pauseBtn.disabled = true;
-    // Cancel any pending hand-off from the "You did it!" curtain.
-    if (winCurtainTimeout) { clearTimeout(winCurtainTimeout); winCurtainTimeout = null; }
-    winCurtain.classList.remove('show');
+    // Cancel any pending celebrate → actions phase swap.
+    if (celebratePhaseTimeout) {
+      clearTimeout(celebratePhaseTimeout);
+      celebratePhaseTimeout = null;
+    }
+    // Cancel the rainbow ripple if it's still running and restore tile colours.
+    stopRipple();
     // Drop the post-completion state — pause/stop become visible again,
-    // floating buttons hide.
+    // floating buttons hide and lose their phase classes so the next win
+    // starts cleanly in the celebrate phase.
     gameScreen.classList.remove('solved');
-    floatingButtons.classList.remove('show');
+    floatingButtons.classList.remove('show', 'phase-actions');
     updateTimerDisplay();
   }
   function pauseTimer() {
@@ -879,6 +909,10 @@
     gameScreen.classList.add('hidden');
     homeScreen.classList.add('hidden');
     restingScreen.classList.remove('hidden');
+    // Mark that the goodbye screen has been shown, so the very next launch
+    // of the app skips it and goes straight to home instead of resuming
+    // here. The flag is cleared the moment it's read at boot or on resume.
+    try { localStorage.setItem('pastelpush_ended', 'true'); } catch {}
   }
 
   function startLevel(idx) {
@@ -911,6 +945,94 @@
     });
   }
 
+  // ---------- Rainbow ripple ----------
+  // Walks the numbered tiles in reading order (left-to-right, top-to-bottom),
+  // skipping the empty space entirely. Each tile takes the colour the
+  // previous tile in the sequence had at the start of the current pass.
+  // The sequence wraps — the last numbered tile's colour flows back to the
+  // first — so successive passes keep rotating the palette continuously.
+  //
+  // Target pass duration is ~200 ms regardless of grid size. At that speed
+  // the per-tile stagger is well below one animation frame on larger grids
+  // (e.g. ~5.7 ms for 6×6), so we drive updates from requestAnimationFrame
+  // and process however many tiles the elapsed time has covered each frame.
+  // That keeps the timing accurate without being throttled by setInterval's
+  // ~4 ms floor or mobile-browser timer clamping.
+  function startRipple() {
+    stopRipple(); // safety — clear any prior state
+
+    rippleTileElements = Array.from(board.children);
+    rippleOriginalBgs = rippleTileElements.map((el) =>
+      el.classList.contains('empty') ? '' : el.style.background
+    );
+
+    // Reading-order indices of numbered tiles only (empty is skipped).
+    const sequence = [];
+    for (let i = 0; i < rippleTileElements.length; i++) {
+      if (!rippleTileElements[i].classList.contains('empty')) sequence.push(i);
+    }
+    const seqLen = sequence.length;
+    if (seqLen === 0) return;
+
+    // Snapshot of colours at the start of the current pass, indexed by
+    // sequence position (not DOM index).
+    let passStartBgs = sequence.map((i) => rippleOriginalBgs[i]);
+
+    // `stepsDone` = total tile-updates completed since the ripple began.
+    // The current sequence position is stepsDone % seqLen.
+    let stepsDone = 0;
+    const PASS_MS = 200;
+    const startTime = performance.now();
+
+    function frame(now) {
+      // If stopRipple ran in the meantime, bail out.
+      if (!rippleTileElements) return;
+
+      // How many total steps should be done by `now`? Always catch up to
+      // the target so the visible cadence matches wall-clock time even if
+      // a frame was skipped.
+      const targetSteps = Math.floor(((now - startTime) / PASS_MS) * seqLen);
+
+      while (stepsDone < targetSteps) {
+        const pos = stepsDone % seqLen;
+        const sourceColor = passStartBgs[(pos - 1 + seqLen) % seqLen];
+        const targetEl = rippleTileElements[sequence[pos]];
+        if (targetEl && sourceColor) {
+          targetEl.style.background = sourceColor;
+        }
+        stepsDone++;
+
+        // Just finished the last tile of a pass — re-snapshot so the next
+        // pass continues rotating the just-finished state.
+        if (pos === seqLen - 1) {
+          passStartBgs = sequence.map((i) => rippleTileElements[i].style.background);
+        }
+      }
+
+      rippleRAF = requestAnimationFrame(frame);
+    }
+
+    rippleRAF = requestAnimationFrame(frame);
+  }
+
+  function stopRipple() {
+    if (rippleRAF !== null) {
+      cancelAnimationFrame(rippleRAF);
+      rippleRAF = null;
+    }
+    // Restore each tile to its original colour. The .tile CSS transition
+    // (~110 ms) makes this a smooth fade rather than a hard snap.
+    if (rippleTileElements && rippleOriginalBgs) {
+      rippleTileElements.forEach((el, i) => {
+        if (!el.classList.contains('empty') && rippleOriginalBgs[i]) {
+          el.style.background = rippleOriginalBgs[i];
+        }
+      });
+    }
+    rippleTileElements = null;
+    rippleOriginalBgs = null;
+  }
+
   function handleWin() {
     finishedAt = Date.now();
     stopTimer();
@@ -927,29 +1049,22 @@
       updatePBDisplay();
     }
 
-    // What "Best" should the curtain show?
-    //   • If we just beat the PB → show the new best (the time they just set)
-    //   • Otherwise → show the existing PB (or em-dash if none)
-    const bestToShow = isNewPB ? elapsed : previousPB;
-    winTimeLine.textContent = `Time   ${formatTime(elapsed)}`;
-    winBestLine.textContent =
-      bestToShow === null ? 'Best   —' : `Best   ${formatTime(bestToShow)}`;
-    if (isNewPB) {
-      winNewPb.classList.remove('hidden');
-    } else {
-      winNewPb.classList.add('hidden');
-    }
+    // Completion moment: hide pause/stop, kick off the rainbow ripple, and
+    // fade in the floating-button container. "You did it!" appears
+    // immediately and stays visible; the action buttons fade in 10 s later.
+    // The header already shows the time and updated personal best, so we
+    // don't overlay those again here.
+    gameScreen.classList.add('solved');
+    floatingButtons.classList.add('show');
+    startRipple();
 
-    // Calm completion moment: the curtain fades in over the finished grid
-    // and holds for 10 seconds, showing time / best / (optional) new-PB
-    // message. After the hold, fade the curtain out and bring in the
-    // drifting floating buttons — no modal, grid stays visible throughout.
-    gameScreen.classList.add('solved');     // hides pause/stop
-    winCurtain.classList.add('show');
-    winCurtainTimeout = setTimeout(() => {
-      winCurtain.classList.remove('show');
-      floatingButtons.classList.add('show');
-      winCurtainTimeout = null;
+    // After 10 s, add the actions phase so "Play Again" and "I'm Done"
+    // fade in alongside the still-drifting "You did it!". The ripple keeps
+    // running — it only stops when the player taps an action button (which
+    // routes through startLevel / showRestingScreen → resetTimer → stopRipple).
+    celebratePhaseTimeout = setTimeout(() => {
+      floatingButtons.classList.add('phase-actions');
+      celebratePhaseTimeout = null;
     }, 10000);
   }
 
@@ -970,11 +1085,12 @@
     confirmModal.classList.add('show');
   });
 
-  // Confirming "Yes" on the quit dialog is the player choosing to close
-  // the game → resting screen (PBs already saved, nothing reset).
+  // Confirming "Yes" on the stop dialog returns to the level select
+  // (NOT the goodbye screen — that path is reserved for "I'm Done"
+  // taps from the completion floating buttons).
   confirmYesBtn.addEventListener('click', () => {
     confirmModal.classList.remove('show');
-    showRestingScreen();
+    showHome();
   });
 
   confirmNoBtn.addEventListener('click', () => {
@@ -986,13 +1102,55 @@
   // The home screen's "Close game" goes straight to the resting screen.
   homeClose.addEventListener('click', showRestingScreen);
 
-  // Floating buttons: Play Again restarts the same level fresh; I'm Done
-  // sends the player to the calm resting/exit screen.
-  floatBtnPlayAgain.addEventListener('click', () => startLevel(levelIdx));
+  // Floating buttons: Play Again returns to the level-select screen so
+  // the player consciously chooses their next level; I'm Done sends them
+  // to the calm goodbye/exit screen.
+  floatBtnPlayAgain.addEventListener('click', showHome);
   floatBtnDone.addEventListener('click', showRestingScreen);
 
   // ---------- Boot ----------
+  // If the previous session ended on the goodbye screen, clear the flag
+  // and start fresh on home — the user shouldn't have to look at the
+  // goodbye screen again when they reopen the app.
+  function consumeEndedFlag() {
+    try {
+      if (localStorage.getItem('pastelpush_ended') === 'true') {
+        localStorage.removeItem('pastelpush_ended');
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+  consumeEndedFlag();
   showHome();
+
+  // ---------- Auto-pause / auto-resume when the app loses focus ----------
+  // Triggers on swipe-up to home, incoming calls, switching to another
+  // app, etc. We only resume if WE were the ones who paused — if the
+  // player manually paused before backgrounding, they stay paused on
+  // return.
+  let autoPausedByVisibility = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // Pause the timer if a game is in progress and not already paused.
+      if (timerStartedAt !== null && finishedAt === null && !paused) {
+        pauseTimer();
+        autoPausedByVisibility = true;
+      }
+    } else {
+      // If the user swiped up from the goodbye screen and then re-opened
+      // the app, drop them on home instead of back on the goodbye screen.
+      if (consumeEndedFlag() && !restingScreen.classList.contains('hidden')) {
+        showHome();
+        return;
+      }
+      // Auto-resume only if we were the ones who paused.
+      if (autoPausedByVisibility && paused) {
+        resumeTimer();
+        autoPausedByVisibility = false;
+      }
+    }
+  });
 
   // ---------- PWA: register the service worker so the game works offline ----------
   if ('serviceWorker' in navigator) {

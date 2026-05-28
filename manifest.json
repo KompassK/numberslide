@@ -1,6 +1,6 @@
 {
-  "name": "Number Slide",
-  "short_name": "Number Slide",
+  "name": "Pastel Push",
+  "short_name": "Pastel Push",
   "description": "A classic sliding number puzzle game with multiple levels and personal-best times.",
   "start_url": "./index.html",
   "scope": "./",
